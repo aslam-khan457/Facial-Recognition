@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-Time Emotion Detector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafc;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+        }
+
+        video, img {
+            border-radius: 12px;
+            max-width: 640px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+        }
+
+        .emotion {
+            margin-top: 16px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2563eb;
+        }
+
+        a {
+            margin-top: 20px;
+            text-decoration: none;
+            color: #2563eb;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-Time Emotion Detection</h1>
+    <video id="video" width="640" height="480" autoplay muted></video>
+    <img id="resultImage" style="display:none;" />
+    <div class="emotion" id="emotionLabel"></div>
+    <a href="/">← Back to Upload</a>
+
+    <script>
+        const video = document.getElementById('video');
+        const resultImage = document.getElementById('resultImage');
+        const emotionLabel = document.getElementById('emotionLabel');
+        const canvas = document.createElement('canvas');
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+                setInterval(captureAndSend, 500); // Capture every 500ms
+            });
+
+        function captureAndSend() {
+            if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            const imageData = canvas.toDataURL('image/jpeg');
+
+            fetch('/process_frame', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.image) {
+                    resultImage.src = data.image;
+                    resultImage.style.display = 'block';
+                    emotionLabel.innerText = "Detected Emotion: " + data.emotion;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
